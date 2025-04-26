@@ -1,0 +1,8 @@
+ 7) List all orders with employee full names. (Inner join)
+select * from employees;
+select * from orders;
+
+select o.order_id, o.employee_id, concat(e.first_name, ' ', e.last_name)  as Fullname
+from orders o
+inner join employees e 
+on o.employee_id = e.employee_id;
