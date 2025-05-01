@@ -1,0 +1,68 @@
+9:56 PM
+
+1. Stock Status of Products
+SELECT 
+    p.product_name,
+    CASE 
+        WHEN p.units_in_stock = 0 THEN 'Out of Stock'
+        WHEN p.units_in_stock < 20 THEN 'Low Stock'
+        ELSE 'Normal stock'
+    END AS stock_status
+FROM 
+    products AS p;
+
+2. Products in Beverages Category
+
+SELECT 
+    pr.product_name, 
+    pr.unit_price
+FROM 
+    products AS pr
+WHERE 
+    pr.category_id = (
+        SELECT c.category_id
+        FROM categories AS c
+        WHERE c.category_name = 'Beverages'
+    )
+ORDER BY 
+    pr.product_name;
+
+
+3.Orders by the Top-Selling Employee
+
+SELECT 
+    o.order_id, 
+    o.order_date, 
+    o.freight, 
+    o.employee_id
+FROM 
+    orders AS o
+WHERE 
+    o.employee_id = (
+        SELECT top_emp.employee_id
+        FROM orders AS top_emp
+        GROUP BY top_emp.employee_id
+        ORDER BY COUNT(top_emp.order_id) DESC
+        LIMIT 1
+    );
+
+
+4. Orders from Non-USA Countries with Higher Freight Than Any USA Order
+
+SELECT 
+    o.order_id, 
+    o.ship_country, 
+    o.freight
+FROM 
+    orders AS o
+WHERE 
+    o.ship_country <> 'USA'
+    AND o.freight > ALL (
+        SELECT u.freight
+        FROM orders AS u
+        WHERE u.ship_country = 'USA'
+    )
+ORDER BY 
+    o.freight DESC;
+
+
