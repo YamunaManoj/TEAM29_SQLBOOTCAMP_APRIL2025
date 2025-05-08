@@ -1,0 +1,87 @@
+/*
+1. Write  a function to Calculate the total stock value for a given category:
+(Stock value=ROUND(SUM(unit_price * units_in_stock)::DECIMAL, 2)
+Return data type is DECIMAL(10,2)
+*/
+SELECT * FROM products
+SELECT * FROM categories
+
+CREATE OR REPLACE FUNCTION total_stock_value_of_category(c_category_id INT)
+RETURNS DECIMAL(10,2)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+	total_stock_value DECIMAL(10,2);
+BEGIN
+	--validate category exists
+	IF NOT EXISTS (SELECT 1 FROM categories WHERE category_id = c_category_id) THEN
+		RAISE EXCEPTION 'Category ID % does nto exist', c_category_id;
+		RETURN 0;
+	END IF;
+
+	--calculate total stock value
+	SELECT
+		ROUND(SUM(unit_price * units_in_stock)::DECIMAL,2)
+		INTO total_stock_value
+	FROM products p
+	JOIN categories c
+	USING (category_id)
+	WHERE p.category_id = c_category_id;
+
+	RETURN total_stock_value;
+END;
+$$;
+
+--execute the function
+SELECT total_stock_value_of_category(1);
+
+/*
+2. Write an example of cursor query.
+*/
+
+CREATE OR REPLACE PROCEDURE update_prices_with_cursor()
+LANGUAGE plpgsql
+AS $$
+DECLARE 
+	product_cursor CURSOR FOR
+		SELECT product_id, product_name, unit_price, units_in_stock
+		FROM products
+		WHERE discontinued = 0;
+	product_record RECORD;
+	v_new_price DECIMAL(10,2);
+BEGIN
+	--open the cursor
+	OPEN product_cursor;
+	LOOP
+		--fetch the next row
+		FETCH product_cursor INTO product_record;
+
+		--exit when nor more rows to fetch
+		EXIT WHEN NOT FOUND;
+
+		--calculate the new price
+		IF product_record.unit_price < 10 THEN	
+			v_new_price = product_record.unit_price * 1.1; --10% increase
+		ELSE
+			v_new_price = product_record.unit_price * 0.95; --5% decrease
+		END IF; 
+
+		--update the price
+		UPDATE products
+		SET unit_price = ROUND(v_new_price,2)
+		WHERE product_id = product_record.product_id;
+
+		--log the change
+		RAISE NOTICE 'Update % price from % to %',
+			product_record.product_id,
+			product_record.unit_price,
+			v_new_price;
+		END LOOP;
+
+		--close the cursor
+		CLOSE product_cursor;
+END;
+$$;
+
+--exceute the procedure
+CALL update_prices_with_cursor();
